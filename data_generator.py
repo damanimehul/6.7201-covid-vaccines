@@ -36,24 +36,40 @@ def generate_state_case_data(num_weeks,num_states=50):
         if i == 0: 
             # create panda dataframe
             state_data = pd.DataFrame(case_numbers,columns=[state_list[i]]) 
+            population_data  = pd.DataFrame([population],columns=[state_list[i]]) 
         else: 
             state_data[state_list[i]] = case_numbers 
+            population_data[state_list[i]] = [population] 
     # convert to dataframe
     print(f'Total population: {total_population}') 
-    return state_data, total_population 
+    return state_data, population_data, total_population 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate COVID-19 data for US states')
+    parser.add_argument('--name', type=str, default='covid_data')
     parser.add_argument('--num_weeks', type=int, default=20,
                         help='Number of weeks to generate data for')
     parser.add_argument('--num_states', type=int, default=50,
                         help='Number of states to generate data for')
+    parser.add_argument('--initial_vaccine_capacity', type=float, default=0.01, help='Vaccine capacity in terms of proportion of total population (0.1 = 10 percent of population)') 
+    parser.add_argument('--vaccine_capacity_increase', type=float, default=0.05, help='Increase in vaccine capacity per week')  
     args = parser.parse_args()
-    state_data,total_population = generate_state_case_data(args.num_weeks,args.num_states)
+    state_data,population_data,total_population = generate_state_case_data(args.num_weeks,args.num_states)
     # save to csv with state names as columns, use timestamp in filename
     #use timestamp in filename
-    state_data.to_csv(f'covid_data_{total_population}_population_{args.num_weeks}_weeks_{args.num_states}_states.csv',index=True) 
+    state_data.to_csv(f'case_data_{args.name}.csv',index=False) 
+    population_data.to_csv(f'population_data_{args.name}.csv',index=False) 
+
+    vaccines_available = [] 
+    vaccine_coeff = args.initial_vaccine_capacity
+    for i in range(args.num_weeks): 
+        vaccines_available.append(int(vaccine_coeff*total_population)) 
+        vaccine_coeff  *= (1+args.vaccine_capacity_increase) 
+    # save to csv 
+    vaccine_data = pd.DataFrame(vaccines_available,columns=['vaccines_available'])
+    vaccine_data.to_csv(f'vaccine_data_{args.name}.csv',index=False) 
+    
     
     
 
